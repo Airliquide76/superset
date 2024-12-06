@@ -67,6 +67,7 @@ from superset.sql.parse import (
     SQLStatement,
     Table,
 )
+from superset.utils.sql_parse_cached import parse_cached,format_cached
 from superset.utils.backports import StrEnum
 
 try:
@@ -153,7 +154,7 @@ def get_cte_remainder_query(sql: str) -> tuple[str | None, str]:
     """
     cte: str | None = None
     remainder = sql
-    stmt = sqlparse.parse(sql)[0]
+    stmt = parse_cached(sql)[0]
 
     # The first meaningful token for CTE will be with WITH
     idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
@@ -209,7 +210,7 @@ class ParsedQuery:
         engine: str = "base",
     ):
         if strip_comments:
-            sql_statement = sqlparse.format(sql_statement, strip_comments=True)
+            sql_statement = format_cached(sql_statement, strip_comments=True)
 
         self.sql: str = sql_statement
         self._engine = engine
@@ -219,7 +220,7 @@ class ParsedQuery:
         self._limit: int | None = None
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
-        self._parsed = sqlparse.parse(self.stripped())
+        self._parsed = parse_cached(self.stripped())
         for statement in self._parsed:
             self._limit = _extract_limit_from_query(statement)
 
@@ -320,7 +321,7 @@ class ParsedQuery:
 
     def is_select(self) -> bool:
         # make sure we strip comments; prevents a bug with comments in the CTE
-        parsed = sqlparse.parse(self.strip_comments())
+        parsed = parse_cached(self.strip_comments())
         seen_select = False
 
         for statement in parsed:
@@ -386,16 +387,16 @@ class ParsedQuery:
         return None
 
     def is_valid_ctas(self) -> bool:
-        parsed = sqlparse.parse(self.strip_comments())
+        parsed = parse_cached(self.strip_comments())
         return parsed[-1].get_type() == "SELECT"
 
     def is_valid_cvas(self) -> bool:
-        parsed = sqlparse.parse(self.strip_comments())
+        parsed = parse_cached(self.strip_comments())
         return len(parsed) == 1 and parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
         # Remove comments
-        statements_without_comments = sqlparse.format(
+        statements_without_comments = format_cached(
             self.stripped(), strip_comments=True
         )
 
@@ -404,7 +405,7 @@ class ParsedQuery:
 
     def is_show(self) -> bool:
         # Remove comments
-        statements_without_comments = sqlparse.format(
+        statements_without_comments = format_cached(
             self.stripped(), strip_comments=True
         )
         # Show statements will only be the first statement
@@ -412,7 +413,7 @@ class ParsedQuery:
 
     def is_set(self) -> bool:
         # Remove comments
-        statements_without_comments = sqlparse.format(
+        statements_without_comments = format_cached(
             self.stripped(), strip_comments=True
         )
         # Set statements will only be the first statement
@@ -425,7 +426,7 @@ class ParsedQuery:
         return self.sql.strip(" \t\r\n;")
 
     def strip_comments(self) -> str:
-        return sqlparse.format(self.stripped(), strip_comments=True)
+        return format_cached(self.stripped(), strip_comments=True)
 
     def get_statements(self) -> list[str]:
         """Returns a list of SQL statements as strings, stripped"""
@@ -533,7 +534,7 @@ class ParsedQuery:
 
 def sanitize_clause(clause: str) -> str:
     # clause = sqlparse.format(clause, strip_comments=True)
-    statements = sqlparse.parse(clause)
+    statements = parse_cached(clause)
     if len(statements) != 1:
         raise QueryClauseValidationException("Clause contains multiple statements")
     open_parens = 0
@@ -655,7 +656,7 @@ def get_rls_for_table(
     if not predicate:
         return None
 
-    rls = sqlparse.parse(predicate)[0]
+    rls = parse_cached(predicate)[0]
     add_table_name(rls, table.table)
 
     return rls

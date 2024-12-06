@@ -26,7 +26,6 @@ from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
 import sqlglot
-import sqlparse
 from deprecation import deprecated
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect, Dialects
@@ -34,6 +33,7 @@ from sqlglot.errors import ParseError
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
 from superset.exceptions import SupersetParseError
+from superset.utils.sql_parse_cached import format_cached
 
 logger = logging.getLogger(__name__)
 
@@ -413,7 +413,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         In 5.0 we should remove `sqlparse`, and the method should return the query
         unmodified.
         """
-        return sqlparse.format(self._sql, reindent=True, keyword_case="upper")
+        return format_cached(self._sql, reindent=True, keyword_case="upper")
 
     def get_settings(self) -> dict[str, str | bool]:
         """

@@ -32,6 +32,7 @@ from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
 from superset.sql_lab import execute_sql_statements, get_sql_results
+from superset.utils.sql_parse_cached import parse_cached
 from superset.utils.core import override_user
 from tests.unit_tests.models.core_test import oauth2_client_info
 
@@ -102,7 +103,7 @@ def test_execute_sql_statement_with_rls(
     SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
     mocker.patch(
         "superset.sql_lab.insert_rls_as_subquery",
-        return_value=sqlparse.parse("SELECT * FROM sales WHERE organization_id=42")[0],
+        return_value=parse_cached("SELECT * FROM sales WHERE organization_id=42")[0],
     )
     mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
 

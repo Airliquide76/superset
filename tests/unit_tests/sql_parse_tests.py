@@ -45,6 +45,7 @@ from superset.sql_parse import (
     strip_comments_from_sql,
 )
 
+from superset.utils.sql_parse_cached import parse_cached,format_cached
 
 def extract_tables(query: str, engine: str = "base") -> set[Table]:
     """
@@ -1092,15 +1093,15 @@ def test_unknown_select() -> None:
     Test that `is_select` works when sqlparse fails to identify the type.
     """
     sql = "WITH foo AS(SELECT 1) SELECT 1"
-    assert sqlparse.parse(sql)[0].get_type() == "SELECT"
+    assert parse_cached(sql)[0].get_type() == "SELECT"
     assert ParsedQuery(sql).is_select()
 
     sql = "WITH foo AS(SELECT 1) INSERT INTO my_table (a) VALUES (1)"
-    assert sqlparse.parse(sql)[0].get_type() == "INSERT"
+    assert parse_cached(sql)[0].get_type() == "INSERT"
     assert not ParsedQuery(sql).is_select()
 
     sql = "WITH foo AS(SELECT 1) DELETE FROM my_table"
-    assert sqlparse.parse(sql)[0].get_type() == "DELETE"
+    assert parse_cached(sql)[0].get_type() == "DELETE"
     assert not ParsedQuery(sql).is_select()
 
 
@@ -1184,7 +1185,7 @@ def test_sqlparse_formatting():
     """
     Test that ``from_unixtime`` is formatted correctly.
     """
-    assert sqlparse.format(
+    assert format_cached(
         "SELECT extract(HOUR from from_unixtime(hour_ts) "
         "AT TIME ZONE 'America/Los_Angeles') from table",
         reindent=True,
@@ -1280,7 +1281,7 @@ def test_sanitize_clause_multiple():
 
 
 def test_sqlparse_issue_652():
-    stmt = sqlparse.parse(r"foo = '\' AND bar = 'baz'")[0]
+    stmt = parse_cached(r"foo = '\' AND bar = 'baz'")[0]
     assert len(stmt.tokens) == 5
     assert str(stmt.tokens[0]) == "foo = '\\'"
 
@@ -1483,7 +1484,7 @@ def test_insert_rls_as_subquery(
     """
     Insert into a statement a given RLS condition associated with a table.
     """
-    condition = sqlparse.parse(rls)[0]
+    condition = parse_cached(rls)[0]
     add_table_name(condition, table)
 
     # pylint: disable=unused-argument
@@ -1515,7 +1516,7 @@ def test_insert_rls_as_subquery(
 
     mocker.patch("superset.sql_parse.get_rls_for_table", new=get_rls_for_table)
 
-    statement = sqlparse.parse(sql)[0]
+    statement = parse_cached(sql)[0]
     assert (
         str(
             insert_rls_as_subquery(
@@ -1706,7 +1707,7 @@ def test_insert_rls_in_predicate(
     """
     Insert into a statement a given RLS condition associated with a table.
     """
-    condition = sqlparse.parse(rls)[0]
+    condition = parse_cached(rls)[0]
     add_table_name(condition, table)
 
     # pylint: disable=unused-argument
@@ -1726,7 +1727,7 @@ def test_insert_rls_in_predicate(
 
     mocker.patch("superset.sql_parse.get_rls_for_table", new=get_rls_for_table)
 
-    statement = sqlparse.parse(sql)[0]
+    statement = parse_cached(sql)[0]
     assert (
         str(
             insert_rls_in_predicate(
@@ -1749,7 +1750,7 @@ def test_insert_rls_in_predicate(
     ],
 )
 def test_add_table_name(rls: str, table: str, expected: str) -> None:
-    condition = sqlparse.parse(rls)[0]
+    condition = parse_cached(rls)[0]
     add_table_name(condition, table)
     assert str(condition) == expected
 

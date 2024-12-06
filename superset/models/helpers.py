@@ -34,6 +34,7 @@ import pytz
 import sqlalchemy as sa
 import sqlparse
 import yaml
+
 from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -74,6 +75,8 @@ from superset.sql_parse import (
     insert_rls_in_predicate,
     sanitize_clause,
 )
+
+from superset.utils.sql_parse_cached import parse_cached
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -126,7 +129,7 @@ def validate_adhoc_subquery(
     nested sub-queries with table
     """
     statements = []
-    for statement in sqlparse.parse(sql):
+    for statement in  parse_cached(sql):
         try:
             has_table = has_table_query(str(statement), engine)
         except SupersetParseError:
